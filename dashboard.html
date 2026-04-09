@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard - Calendario UCV</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- ===== DASHBOARD ===== -->
+  <div id="dashboard" class="dashboard">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <button class="home-btn" onclick="goHome()">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+          </svg>
+        </button>
+      </div>
+
+      <div class="sidebar-content">
+        <h3 class="sidebar-title">Cursos</h3>
+        <div id="coursesList" class="courses-list"></div>
+      </div>
+
+      <div class="sidebar-footer">
+        <button class="logout-btn" onclick="logout()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+        </button>
+      </div>
+    </aside>
+
+    <main class="main-panel">
+      <!-- Home / Perfil y Cursos -->
+      <section id="homeView" class="view-section active">
+        <div class="header-profile">
+          <img id="profileAvatar" src="" alt="" class="profile-avatar" />
+          <div class="profile-info">
+            <h2 id="profileName"></h2>
+            <p id="profileRole"></p>
+          </div>
+        </div>
+
+        <div class="courses-overview">
+          <h3>Tus Cursos</h3>
+          <div id="homeCoursesGrid" class="courses-grid"></div>
+        </div>
+      </section>
+
+      <!-- Vista de Curso con Calendario -->
+      <section id="courseView" class="view-section">
+        <div class="course-header">
+          <button class="btn-back" onclick="goHome()">
+            ← Volver
+          </button>
+          <h2 id="courseTitle"></h2>
+        </div>
+
+        <div class="course-calendar">
+          <div class="calendar-controls">
+            <button onclick="previousMonth()">← Mes Anterior</button>
+            <h3 id="monthYearDisplay"></h3>
+            <button onclick="nextMonth()">Mes Siguiente →</button>
+          </div>
+          <div class="calendar-grid" id="courseCalendarGrid"></div>
+        </div>
+
+        <div class="course-admin-section" id="adminSection" style="display: none;">
+          <h3>Crear Evento</h3>
+          <form class="event-form" onsubmit="createEvent(event)">
+            <input type="text" id="eventTitle" placeholder="Título del evento" required />
+            <textarea id="eventDesc" placeholder="Descripción" rows="3"></textarea>
+            <input type="date" id="eventDate" required />
+            <select id="eventType">
+              <option value="tarea">Tarea</option>
+              <option value="examen">Examen</option>
+              <option value="proyecto">Proyecto</option>
+              <option value="exposicion">Exposición</option>
+              <option value="otro">Otro</option>
+            </select>
+            <button type="submit">Crear Evento</button>
+          </form>
+        </div>
+      </section>
+
+      <!-- Vista de Evento con Comentarios -->
+      <section id="eventView" class="view-section">
+        <button class="btn-back" onclick="backToCalendar()">← Volver al calendario</button>
+
+        <div class="event-detail">
+          <h2 id="eventDetailTitle"></h2>
+          <div class="event-meta">
+            <span id="eventDetailType"></span>
+            <span id="eventDetailDate"></span>
+            <span id="eventDetailAuthor"></span>
+          </div>
+          <p id="eventDetailDesc"></p>
+
+          <!-- Task Completion Controls -->
+          <div class="task-completion" id="taskCompletionSection" style="display: none;">
+            <h4>Estado de la tarea</h4>
+            <div class="completion-controls">
+              <button id="markCompletedBtn" class="completion-btn completed" onclick="toggleTaskCompletion(true)">
+                Completada
+              </button>
+              <button id="markIncompleteBtn" class="completion-btn incomplete" onclick="toggleTaskCompletion(false)">
+                No completada
+              </button>
+            </div>
+            <div id="completionStatus" class="completion-status"></div>
+          </div>
+
+          <!-- Event Reactions -->
+          <div class="event-reactions">
+            <h4>¿Qué te parece esta actividad?</h4>
+            <div class="reaction-buttons">
+              <button class="reaction-btn" onclick="addEventReaction('like')" title="Me gusta">
+                Like
+              </button>
+              <button class="reaction-btn" onclick="addEventReaction('love')" title="Me encanta">
+                Love
+              </button>
+              <button class="reaction-btn" onclick="addEventReaction('haha')" title="Gracioso">
+                Haha
+              </button>
+              <button class="reaction-btn" onclick="addEventReaction('wow')" title="Impresionante">
+                Wow
+              </button>
+              <button class="reaction-btn" onclick="addEventReaction('sad')" title="Triste">
+                Sad
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="comments-section">
+          <h3>Comentarios</h3>
+          <div id="commentsList" class="comments-list"></div>
+
+          <div class="comment-form">
+            <textarea id="newComment" placeholder="Escribe un comentario..." rows="3"></textarea>
+            <button onclick="submitComment()">Enviar</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast"></div>
+  <script src="app.js"></script>
+  <script>
+    // Check authentication on dashboard load
+    fetch('/auth/me')
+      .then(response => response.json())
+      .then(user => {
+        if (user.error) {
+          window.location.href = '/';
+        } else {
+          // Initialize dashboard with user data
+          initializeDashboard(user);
+        }
+      })
+      .catch(() => {
+        window.location.href = '/';
+      });
+  </script>
+</body>
+</html>
