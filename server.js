@@ -10,6 +10,13 @@ const cors = require('cors');
 const path = require('path');
 const User = require('./User');
 
+console.log('🔍 Variables de entorno cargadas:');
+console.log('MONGODB_URI:', process.env.MONGODB_URI ? '✅ Definida' : '❌ No definida');
+console.log('SESSION_SECRET:', process.env.SESSION_SECRET ? '✅ Definida' : '❌ No definida (usando fallback)');
+console.log('GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? '✅ Definida' : '❌ No definida');
+console.log('GOOGLE_CLIENT_SECRET:', process.env.GOOGLE_CLIENT_SECRET ? '✅ Definida' : '❌ No definida');
+console.log('CALLBACK_URL:', process.env.CALLBACK_URL ? '✅ Definida' : '❌ No definida');
+
 const app = express();
 
 // Connect MongoDB
@@ -29,7 +36,7 @@ app.use(session({
   secret: process.env.SESSION_SECRET || 'grupo3secret',
   resave: false,
   saveUninitialized: false,
-  store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI }),
+  // store: MongoStore.create({ mongoUrl: process.env.MONGODB_URI }), // Temporalmente comentado para probar
   cookie: { 
     secure: process.env.NODE_ENV === 'production',
     maxAge: 7 * 24 * 60 * 60 * 1000
