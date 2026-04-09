@@ -987,3 +987,157 @@ input, textarea, select { font: inherit; }
     grid-template-columns: 1fr;
   }
 }
+
+/* ===== CALENDAR EVENT STRIPS ===== */
+.event-strips {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.event-strip {
+  height: 4px;
+  border-radius: 2px;
+  width: 100%;
+}
+
+.calendar-day.today .day-number {
+  background: var(--accent);
+  color: white;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.calendar-day {
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 0.5rem;
+  gap: 4px;
+}
+
+.day-number {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+/* ===== DAY EVENTS MODAL ===== */
+.event-color-bar {
+  width: 5px;
+  min-height: 100%;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.event-item-info {
+  flex: 1;
+}
+
+.event-item-info h4 {
+  margin: 0 0 0.2rem 0;
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.event-item-info p {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.event-item-desc {
+  margin-top: 0.3rem !important;
+  color: var(--text) !important;
+  font-size: 0.85rem !important;
+  line-height: 1.4;
+}
+
+/* ===== FAB BUTTON ===== */
+.fab-create-event {
+  position: fixed;
+  bottom: 2.5rem;
+  right: 2.5rem;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 24px rgba(124, 106, 255, 0.45);
+  transition: all 0.2s ease;
+  z-index: 500;
+}
+
+.fab-create-event:hover {
+  transform: scale(1.1);
+  box-shadow: 0 10px 32px rgba(124, 106, 255, 0.55);
+}
+
+/* ===== MODAL CREAR EVENTO ===== */
+.modal-title {
+  margin: 0 0 1.5rem 0;
+  color: var(--accent);
+  font-size: 1.3rem;
+}
+
+.form-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: -0.5rem;
+}
+
+.color-picker-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.color-dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+  outline: none;
+}
+
+.color-dot:hover {
+  transform: scale(1.15);
+}
+
+.color-dot.selected {
+  border-color: var(--text);
+  transform: scale(1.2);
+  box-shadow: 0 0 0 2px white, 0 0 0 4px var(--text);
+}
+
+.btn-submit-event {
+  padding: 0.9rem;
+  background: var(--accent);
+  color: white;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  margin-top: 0.5rem;
+}
+
+.btn-submit-event:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(124, 106, 255, 0.4);
+}
