@@ -56,17 +56,15 @@
           <button class="btn-back" onclick="goHome()">← Volver</button>
           <h2 id="courseTitle"></h2>
         </div>
-
         <div class="course-calendar">
           <div class="calendar-controls">
-            <button onclick="previousMonth()">← Mes Anterior</button>
+            <button onclick="previousMonth()">← Anterior</button>
             <h3 id="monthYearDisplay"></h3>
-            <button onclick="nextMonth()">Mes Siguiente →</button>
+            <button onclick="nextMonth()">Siguiente →</button>
           </div>
           <div class="calendar-grid" id="courseCalendarGrid"></div>
         </div>
-
-        <!-- Botón flotante para crear evento (solo admin) -->
+        <!-- FAB solo admin -->
         <button id="fabCreateEvent" class="fab-create-event" onclick="openCreateEventModal()" style="display:none;" title="Crear evento">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -79,15 +77,16 @@
       <section id="eventView" class="view-section">
         <button class="btn-back" onclick="backToCalendar()">← Volver al calendario</button>
         <div class="event-detail">
+          <div id="eventDetailColorBar" class="event-detail-color-bar"></div>
           <h2 id="eventDetailTitle"></h2>
           <div class="event-meta">
-            <span id="eventDetailType"></span>
+            <span id="eventDetailType" class="event-tag"></span>
             <span id="eventDetailDate"></span>
             <span id="eventDetailAuthor"></span>
           </div>
           <p id="eventDetailDesc"></p>
 
-          <div class="task-completion" id="taskCompletionSection" style="display: none;">
+          <div class="task-completion" id="taskCompletionSection" style="display:none;">
             <h4>Estado de la tarea</h4>
             <div class="completion-controls">
               <button id="markCompletedBtn" class="completion-btn completed" onclick="toggleTaskCompletion(true)">✅ Completada</button>
@@ -120,11 +119,34 @@
     </main>
   </div>
 
+  <!-- ===== MODAL: CREAR CURSO ===== -->
+  <div id="createCourseModal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeCreateCourseModal()">
+    <div class="modal-content">
+      <button class="close-modal" onclick="closeCreateCourseModal()">✕</button>
+      <h3 class="modal-title">🎓 Nuevo Curso</h3>
+      <div class="event-form">
+        <input type="text" id="courseName" placeholder="Nombre del curso" required />
+        <textarea id="courseDescription" placeholder="Descripción (opcional)" rows="3"></textarea>
+        <label class="form-label">Color del curso</label>
+        <div class="color-picker-row">
+          <button type="button" class="color-dot selected" style="background:#7c6aff" data-color="#7c6aff" onclick="selectCourseColor(this)"></button>
+          <button type="button" class="color-dot" style="background:#ef4444" data-color="#ef4444" onclick="selectCourseColor(this)"></button>
+          <button type="button" class="color-dot" style="background:#f59e0b" data-color="#f59e0b" onclick="selectCourseColor(this)"></button>
+          <button type="button" class="color-dot" style="background:#10b981" data-color="#10b981" onclick="selectCourseColor(this)"></button>
+          <button type="button" class="color-dot" style="background:#3b82f6" data-color="#3b82f6" onclick="selectCourseColor(this)"></button>
+          <button type="button" class="color-dot" style="background:#ec4899" data-color="#ec4899" onclick="selectCourseColor(this)"></button>
+        </div>
+        <input type="hidden" id="courseColor" value="#7c6aff" />
+        <button type="button" class="btn-submit-event" onclick="submitCreateCourse()">Crear Curso</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== MODAL: CREAR EVENTO ===== -->
-  <div id="createEventModal" class="modal-overlay" style="display:none;" onclick="handleModalBackdropClick(event)">
-    <div class="modal-content" onclick="event.stopPropagation()">
+  <div id="createEventModal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeCreateEventModal()">
+    <div class="modal-content">
       <button class="close-modal" onclick="closeCreateEventModal()">✕</button>
-      <h3 class="modal-title">Crear Evento</h3>
+      <h3 class="modal-title">➕ Crear Evento</h3>
       <form class="event-form" onsubmit="createEvent(event)">
         <input type="text" id="eventTitle" placeholder="Título del evento" required />
         <textarea id="eventDesc" placeholder="Descripción (opcional)" rows="3"></textarea>
@@ -140,16 +162,25 @@
         </select>
         <label class="form-label">Color del evento</label>
         <div class="color-picker-row">
-          <button type="button" class="color-dot selected" style="background:#7c6aff" data-color="#7c6aff" onclick="selectColor(this)"></button>
-          <button type="button" class="color-dot" style="background:#ef4444" data-color="#ef4444" onclick="selectColor(this)"></button>
-          <button type="button" class="color-dot" style="background:#f59e0b" data-color="#f59e0b" onclick="selectColor(this)"></button>
-          <button type="button" class="color-dot" style="background:#10b981" data-color="#10b981" onclick="selectColor(this)"></button>
-          <button type="button" class="color-dot" style="background:#3b82f6" data-color="#3b82f6" onclick="selectColor(this)"></button>
-          <button type="button" class="color-dot" style="background:#ec4899" data-color="#ec4899" onclick="selectColor(this)"></button>
+          <button type="button" class="color-dot selected" style="background:#7c6aff" data-color="#7c6aff" onclick="selectEventColor(this)"></button>
+          <button type="button" class="color-dot" style="background:#ef4444" data-color="#ef4444" onclick="selectEventColor(this)"></button>
+          <button type="button" class="color-dot" style="background:#f59e0b" data-color="#f59e0b" onclick="selectEventColor(this)"></button>
+          <button type="button" class="color-dot" style="background:#10b981" data-color="#10b981" onclick="selectEventColor(this)"></button>
+          <button type="button" class="color-dot" style="background:#3b82f6" data-color="#3b82f6" onclick="selectEventColor(this)"></button>
+          <button type="button" class="color-dot" style="background:#ec4899" data-color="#ec4899" onclick="selectEventColor(this)"></button>
         </div>
         <input type="hidden" id="eventColor" value="#7c6aff" />
         <button type="submit" class="btn-submit-event">Crear Evento</button>
       </form>
+    </div>
+  </div>
+
+  <!-- ===== MODAL: EVENTOS DEL DÍA ===== -->
+  <div id="dayEventsModal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closeDayModal()">
+    <div class="modal-content">
+      <button class="close-modal" onclick="closeDayModal()">✕</button>
+      <h3 class="modal-title" id="dayModalTitle"></h3>
+      <div id="dayEventsList" class="day-events"></div>
     </div>
   </div>
 
