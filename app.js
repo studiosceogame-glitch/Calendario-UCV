@@ -8,17 +8,13 @@ let comments = [];
 let currentMonth = new Date().getMonth();
 let currentYear = new Date().getFullYear();
 
-// ===== AUTHENTICATION =====
+// ===== INIT =====
 function initializeDashboard(user) {
   currentUser = user;
-  showDashboard();
+  document.getElementById('profileAvatar').src = user.avatar || '';
+  document.getElementById('profileName').textContent = user.name;
+  document.getElementById('profileRole').textContent = user.role === 'admin' ? 'Administrador' : 'Estudiante';
   loadCourses();
-}
-
-function showDashboard() {
-  document.getElementById('profileAvatar').src = currentUser.avatar || '';
-  document.getElementById('profileName').textContent = currentUser.name;
-  document.getElementById('profileRole').textContent = currentUser.role === 'admin' ? 'Administrador' : 'Estudiante';
 }
 
 function logout() {
@@ -31,40 +27,45 @@ function goHome() {
   renderHomePage();
 }
 
-function showView(viewId) {
+function showView(id) {
   document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
-  document.getElementById(viewId).classList.add('active');
+  document.getElementById(id).classList.add('active');
 }
 
-// ===== HOME PAGE =====
+// ===== HOME =====
 function renderHomePage() {
   showView('homeView');
   const grid = document.getElementById('homeCoursesGrid');
-  grid.innerHTML = courses.map(course => `
-    <div class="course-card" onclick="enterCourse('${course._id}')">
-      <div class="course-color" style="background:${course.color || '#7c6aff'}"></div>
-      <h4>${course.name}</h4>
-      <p>${course.description || 'Sin descripción'}</p>
+  grid.innerHTML = courses.map(c => `
+    <div class="course-card" onclick="enterCourse('${c._id}')">
+      <div class="course-color" style="background:${c.color || '#7c6aff'}"></div>
+      <h4>${c.name}</h4>
+      <p>${c.description || 'Sin descripción'}</p>
     </div>
   `).join('');
 
   if (currentUser.role === 'admin') {
     const btn = document.createElement('div');
     btn.className = 'course-card add-course-btn';
-    btn.innerHTML = '<span class="plus-icon">+</span> Nuevo Curso';
+    btn.innerHTML = `
+      <div class="add-course-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+      </div>
+      <span>Nuevo Curso</span>
+    `;
     btn.onclick = openCreateCourseModal;
     grid.appendChild(btn);
   }
-
   renderSidebarCourses();
 }
 
 function renderSidebarCourses() {
-  const list = document.getElementById('coursesList');
-  list.innerHTML = courses.map(course => `
-    <button class="course-btn" onclick="enterCourse('${course._id}')" title="${course.name}">
-      <div class="course-dot" style="background:${course.color || '#7c6aff'}"></div>
-      <span>${course.name.substring(0, 18)}</span>
+  document.getElementById('coursesList').innerHTML = courses.map(c => `
+    <button class="course-btn" onclick="enterCourse('${c._id}')">
+      <div class="course-dot" style="background:${c.color || '#7c6aff'}"></div>
+      <span>${c.name.substring(0, 18)}</span>
     </button>
   `).join('');
 }
@@ -74,7 +75,7 @@ async function loadCourses() {
     const res = await fetch('/api/courses');
     courses = await res.json();
     renderHomePage();
-  } catch (err) {
+  } catch (e) {
     showToast('Error cargando cursos', 'error');
   }
 }
@@ -84,40 +85,38 @@ function openCreateCourseModal() {
   document.getElementById('courseName').value = '';
   document.getElementById('courseDescription').value = '';
   document.getElementById('courseColor').value = '#7c6aff';
-  document.querySelectorAll('#createCourseModal .color-dot').forEach((d, i) => d.classList.toggle('selected', i === 0));
+  resetColorPicker('courseColorPicker', '#7c6aff');
   document.getElementById('createCourseModal').style.display = 'flex';
 }
-
 function closeCreateCourseModal() {
   document.getElementById('createCourseModal').style.display = 'none';
 }
-
 function selectCourseColor(btn) {
-  document.querySelectorAll('#createCourseModal .color-dot').forEach(d => d.classList.remove('selected'));
+  document.querySelectorAll('#courseColorPicker .color-dot').forEach(d => d.classList.remove('selected'));
   btn.classList.add('selected');
   document.getElementById('courseColor').value = btn.dataset.color;
 }
-
 async function submitCreateCourse() {
   const name = document.getElementById('courseName').value.trim();
   if (!name) { showToast('El nombre es obligatorio', 'error'); return; }
-  const description = document.getElementById('courseDescription').value.trim();
-  const color = document.getElementById('courseColor').value;
-
   try {
     const res = await fetch('/api/courses', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, description, color })
+      body: JSON.stringify({
+        name,
+        description: document.getElementById('courseDescription').value.trim(),
+        color: document.getElementById('courseColor').value
+      })
     });
     const course = await res.json();
     if (course.error) throw new Error(course.error);
     courses.push(course);
     closeCreateCourseModal();
     renderHomePage();
-    showToast('Curso creado exitosamente', 'success');
-  } catch (err) {
-    showToast('Error creando curso: ' + err.message, 'error');
+    showToast('Curso creado', 'success');
+  } catch (e) {
+    showToast('Error: ' + e.message, 'error');
   }
 }
 
@@ -130,46 +129,41 @@ async function enterCourse(courseId) {
   document.getElementById('courseTitle').textContent = currentCourse.name;
 
   const fab = document.getElementById('fabCreateEvent');
-  if (fab) fab.style.display = currentUser.role === 'admin' ? 'flex' : 'none';
+  fab.style.display = currentUser.role === 'admin' ? 'flex' : 'none';
 
   currentMonth = new Date().getMonth();
   currentYear = new Date().getFullYear();
-
   await loadCourseEvents();
   renderCourseCalendar();
 }
 
 async function loadCourseEvents() {
-  if (!currentCourse) return;
   try {
     const res = await fetch(`/api/courses/${currentCourse._id}/events`);
     events = await res.json();
-  } catch (err) {
+  } catch (e) {
     events = [];
   }
 }
 
 // ===== CALENDAR =====
-// FIX: parse date as UTC to avoid timezone day-shift
-function getEventUTCDate(event) {
-  const d = new Date(event.date);
-  return {
-    day: d.getUTCDate(),
-    month: d.getUTCMonth(),
-    year: d.getUTCFullYear()
-  };
+// Parse date string "YYYY-MM-DD" or ISO directly as UTC to avoid timezone shift
+function parseDateUTC(dateVal) {
+  if (!dateVal) return null;
+  // Handle both "YYYY-MM-DD" and full ISO strings
+  const s = typeof dateVal === 'string' ? dateVal : new Date(dateVal).toISOString();
+  const [year, month, day] = s.substring(0, 10).split('-').map(Number);
+  return { year, month: month - 1, day }; // month is 0-indexed
 }
 
 function renderCourseCalendar() {
   const monthNames = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
     'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-
   document.getElementById('monthYearDisplay').textContent = `${monthNames[currentMonth]} ${currentYear}`;
 
   const grid = document.getElementById('courseCalendarGrid');
   grid.innerHTML = '';
 
-  // Cabeceras
   ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'].forEach(d => {
     const h = document.createElement('div');
     h.className = 'calendar-day-header';
@@ -179,42 +173,45 @@ function renderCourseCalendar() {
 
   const firstDay = new Date(currentYear, currentMonth, 1).getDay();
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-  const today = new Date();
+  const now = new Date();
+  const todayDay = now.getDate();
+  const todayMonth = now.getMonth();
+  const todayYear = now.getFullYear();
 
   for (let i = 0; i < firstDay; i++) {
-    const e = document.createElement('div');
-    e.className = 'calendar-day empty';
-    grid.appendChild(e);
+    const el = document.createElement('div');
+    el.className = 'calendar-day empty';
+    grid.appendChild(el);
   }
 
   for (let day = 1; day <= daysInMonth; day++) {
     const cell = document.createElement('div');
     cell.className = 'calendar-day';
 
-    const isToday = day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear();
+    const isToday = day === todayDay && currentMonth === todayMonth && currentYear === todayYear;
     if (isToday) cell.classList.add('today');
 
-    // FIX: compare using UTC date parts
+    // KEY FIX: parse date as "YYYY-MM-DD" substring to avoid any timezone issues
     const dayEvents = events.filter(e => {
-      const utc = getEventUTCDate(e);
-      return utc.day === day && utc.month === currentMonth && utc.year === currentYear;
+      const p = parseDateUTC(e.date);
+      return p && p.day === day && p.month === currentMonth && p.year === currentYear;
     });
 
     if (dayEvents.length > 0) {
       cell.classList.add('has-events');
-      cell.onclick = () => showDayEventsModal(day, dayEvents);
+      cell.onclick = () => openSlidePanel(day, dayEvents);
 
-      // Rayitas de color (máx 3)
-      const strips = dayEvents.slice(0, 3).map(e =>
+      const strips = dayEvents.slice(0, 4).map(e =>
         `<div class="event-strip" style="background:${e.color || '#7c6aff'}"></div>`
       ).join('');
 
       cell.innerHTML = `
-        <div class="day-number ${isToday ? 'today-dot' : ''}">${day}</div>
+        <div class="day-number">${day}</div>
         <div class="event-strips">${strips}</div>
       `;
     } else {
-      cell.innerHTML = `<div class="day-number ${isToday ? 'today-dot' : ''}">${day}</div>`;
+      cell.innerHTML = `<div class="day-number">${day}</div>`;
+      if (isToday) cell.onclick = null;
     }
 
     grid.appendChild(cell);
@@ -226,42 +223,56 @@ function previousMonth() {
   if (currentMonth < 0) { currentMonth = 11; currentYear--; }
   renderCourseCalendar();
 }
-
 function nextMonth() {
   currentMonth++;
   if (currentMonth > 11) { currentMonth = 0; currentYear++; }
   renderCourseCalendar();
 }
 
-// ===== MODAL: EVENTOS DEL DÍA =====
-function showDayEventsModal(day, dayEvents) {
+// ===== SLIDE PANEL =====
+function openSlidePanel(day, dayEvents) {
   const monthNames = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
     'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
-  document.getElementById('dayModalTitle').textContent = `📅 ${day} de ${monthNames[currentMonth]} ${currentYear}`;
+  document.getElementById('slidePanelTitle').textContent = `${day} de ${monthNames[currentMonth]}`;
+  document.getElementById('slidePanelSub').textContent =
+    dayEvents.length === 1 ? '1 actividad' : `${dayEvents.length} actividades`;
 
-  const list = document.getElementById('dayEventsList');
-  list.innerHTML = dayEvents.map(e => `
-    <div class="day-event-item" onclick="closeDayModalAndView('${e._id}')">
-      <div class="event-color-bar" style="background:${e.color || '#7c6aff'}"></div>
-      <div class="event-item-info">
-        <h4>${e.title}</h4>
-        <span class="event-tag-small" style="background:${e.color || '#7c6aff'}22; color:${e.color || '#7c6aff'}">${getEventTypeLabel(e.type)}</span>
-        ${e.description ? `<p class="event-item-desc">${e.description}</p>` : ''}
+  const content = document.getElementById('slidePanelContent');
+  content.innerHTML = dayEvents.map(e => `
+    <div class="slide-event-card" onclick="openEventFromPanel('${e._id}')">
+      <div class="slide-event-color" style="background:${e.color || '#7c6aff'}"></div>
+      <div class="slide-event-body">
+        <div class="slide-event-type">
+          <div class="type-dot" style="background:${e.color || '#7c6aff'}"></div>
+          <span class="slide-event-type-label">${getTypeLabel(e.type)}</span>
+        </div>
+        <h4 class="slide-event-title">${e.title}</h4>
+        ${e.description ? `<p class="slide-event-desc">${e.description}</p>` : ''}
+        <div class="slide-event-author">
+          <div class="author-dot"></div>
+          <span>${e.authorName || 'Docente'}</span>
+        </div>
       </div>
-      <span class="event-arrow">→</span>
+      <div class="slide-event-arrow">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polyline points="9 18 15 12 9 6"/>
+        </svg>
+      </div>
     </div>
   `).join('');
 
-  document.getElementById('dayEventsModal').style.display = 'flex';
+  document.getElementById('slideOverlay').classList.add('active');
+  document.getElementById('slidePanel').classList.add('open');
 }
 
-function closeDayModal() {
-  document.getElementById('dayEventsModal').style.display = 'none';
+function closeSlidePanel() {
+  document.getElementById('slideOverlay').classList.remove('active');
+  document.getElementById('slidePanel').classList.remove('open');
 }
 
-function closeDayModalAndView(eventId) {
-  closeDayModal();
+function openEventFromPanel(eventId) {
+  closeSlidePanel();
   viewEvent(eventId);
 }
 
@@ -272,28 +283,35 @@ function openCreateEventModal() {
   document.getElementById('eventDate').value = '';
   document.getElementById('eventType').value = 'tarea';
   document.getElementById('eventColor').value = '#7c6aff';
-  document.querySelectorAll('#createEventModal .color-dot').forEach((d, i) => d.classList.toggle('selected', i === 0));
+  resetColorPicker('eventColorPicker', '#7c6aff');
+  document.querySelectorAll('#typePicker .type-btn').forEach((b, i) => b.classList.toggle('selected', i === 0));
   document.getElementById('createEventModal').style.display = 'flex';
 }
-
 function closeCreateEventModal() {
   document.getElementById('createEventModal').style.display = 'none';
 }
-
 function selectEventColor(btn) {
-  document.querySelectorAll('#createEventModal .color-dot').forEach(d => d.classList.remove('selected'));
+  document.querySelectorAll('#eventColorPicker .color-dot').forEach(d => d.classList.remove('selected'));
   btn.classList.add('selected');
   document.getElementById('eventColor').value = btn.dataset.color;
+}
+function selectType(btn) {
+  document.querySelectorAll('#typePicker .type-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  document.getElementById('eventType').value = btn.dataset.type;
 }
 
 async function createEvent(e) {
   e.preventDefault();
   if (!currentCourse || currentUser.role !== 'admin') return;
 
-  const eventData = {
-    title: document.getElementById('eventTitle').value,
-    description: document.getElementById('eventDesc').value,
-    date: document.getElementById('eventDate').value,
+  const dateVal = document.getElementById('eventDate').value; // "YYYY-MM-DD"
+  if (!dateVal) { showToast('Selecciona una fecha', 'error'); return; }
+
+  const body = {
+    title: document.getElementById('eventTitle').value.trim(),
+    description: document.getElementById('eventDesc').value.trim(),
+    date: dateVal,
     type: document.getElementById('eventType').value,
     color: document.getElementById('eventColor').value || '#7c6aff'
   };
@@ -302,49 +320,51 @@ async function createEvent(e) {
     const res = await fetch(`/api/courses/${currentCourse._id}/events`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(eventData)
+      body: JSON.stringify(body)
     });
     const event = await res.json();
     if (event.error) throw new Error(event.error);
     events.push(event);
     closeCreateEventModal();
     renderCourseCalendar();
-    showToast('Evento creado exitosamente', 'success');
+    showToast('Evento creado', 'success');
   } catch (err) {
-    showToast('Error creando evento: ' + err.message, 'error');
+    showToast('Error: ' + err.message, 'error');
   }
 }
 
-// ===== EVENT VIEW =====
+// ===== EVENT DETAIL VIEW =====
 async function viewEvent(eventId) {
   currentEvent = events.find(e => e._id === eventId);
   if (!currentEvent) return;
 
   showView('eventView');
 
-  // Barra de color superior
-  const colorBar = document.getElementById('eventDetailColorBar');
-  if (colorBar) colorBar.style.background = currentEvent.color || '#7c6aff';
+  const bar = document.getElementById('eventDetailColorBar');
+  bar.style.background = currentEvent.color || '#7c6aff';
 
   document.getElementById('eventDetailTitle').textContent = currentEvent.title;
-  document.getElementById('eventDetailType').textContent = getEventTypeLabel(currentEvent.type);
-  document.getElementById('eventDetailType').style.background = (currentEvent.color || '#7c6aff') + '22';
-  document.getElementById('eventDetailType').style.color = currentEvent.color || '#7c6aff';
 
-  // FIX: show UTC date correctly
-  const utc = getEventUTCDate(currentEvent);
-  const dateStr = new Date(currentEvent.date).toLocaleDateString('es-ES', { timeZone: 'UTC', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-  document.getElementById('eventDetailDate').textContent = `📅 ${dateStr}`;
-  document.getElementById('eventDetailAuthor').textContent = `👤 ${currentEvent.authorName}`;
-  document.getElementById('eventDetailDesc').textContent = currentEvent.description || '';
+  const typeEl = document.getElementById('eventDetailType');
+  typeEl.textContent = getTypeLabel(currentEvent.type);
+  typeEl.style.background = (currentEvent.color || '#7c6aff') + '22';
+  typeEl.style.color = currentEvent.color || '#7c6aff';
+  typeEl.style.borderColor = (currentEvent.color || '#7c6aff') + '55';
+
+  const p = parseDateUTC(currentEvent.date);
+  const months = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  const days = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+  const dayName = days[new Date(currentEvent.date).getUTCDay()];
+  document.getElementById('eventDetailDate').textContent = `${dayName} ${p.day} de ${months[p.month]} ${p.year}`;
+  document.getElementById('eventDetailAuthor').textContent = currentEvent.authorName || 'Docente';
+
+  const descEl = document.getElementById('eventDetailDesc');
+  descEl.textContent = currentEvent.description || '';
+  descEl.style.display = currentEvent.description ? 'block' : 'none';
 
   const taskSection = document.getElementById('taskCompletionSection');
-  if (currentEvent.type === 'tarea') {
-    taskSection.style.display = 'block';
-    updateCompletionStatus();
-  } else {
-    taskSection.style.display = 'none';
-  }
+  taskSection.style.display = currentEvent.type === 'tarea' ? 'block' : 'none';
+  if (currentEvent.type === 'tarea') updateCompletionStatus();
 
   await loadComments();
 }
@@ -360,55 +380,59 @@ async function loadComments() {
     const res = await fetch(`/api/events/${currentEvent._id}/comments`);
     comments = await res.json();
     renderComments();
-  } catch (err) {
-    comments = [];
-  }
+  } catch (e) { comments = []; }
 }
 
 function renderComments() {
   const list = document.getElementById('commentsList');
   if (!comments.length) {
-    list.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:1rem;">Aún no hay comentarios. ¡Sé el primero!</p>';
+    list.innerHTML = '<p class="empty-comments">Sin comentarios aún. Sé el primero.</p>';
     return;
   }
-  list.innerHTML = comments.map(comment => `
-    <div class="comment">
-      <div class="comment-header">
-        <img src="${comment.authorAvatar || ''}" alt="" class="comment-avatar" onerror="this.style.display='none'" />
-        <div class="comment-author">
-          <strong>${comment.authorName}</strong>
-          <span class="comment-date">${new Date(comment.createdAt).toLocaleDateString('es-ES')}</span>
+  list.innerHTML = comments.map(c => {
+    const date = new Date(c.createdAt);
+    const dateStr = `${date.getDate()}/${date.getMonth()+1}/${date.getFullYear()}`;
+    return `
+      <div class="comment">
+        <div class="comment-header">
+          <img src="${c.authorAvatar || ''}" alt="" class="comment-avatar" onerror="this.style.display='none'" />
+          <div class="comment-author">
+            <strong>${c.authorName}</strong>
+            <span class="comment-date">${dateStr}</span>
+          </div>
+        </div>
+        <p class="comment-text">${c.text}</p>
+        <div class="comment-reactions">
+          <button class="reaction-btn" onclick="addReaction('${c._id}','like')">
+            <span class="react-count">${c.reactions?.like || 0}</span> Me gusta
+          </button>
+          <button class="reaction-btn" onclick="addReaction('${c._id}','love')">
+            <span class="react-count">${c.reactions?.love || 0}</span> Genial
+          </button>
+          <button class="reaction-btn" onclick="addReaction('${c._id}','haha')">
+            <span class="react-count">${c.reactions?.haha || 0}</span> Jajaja
+          </button>
         </div>
       </div>
-      <p class="comment-text">${comment.text}</p>
-      <div class="comment-reactions">
-        <button class="reaction-btn" onclick="addReaction('${comment._id}', 'like')">👍 ${comment.reactions?.like || 0}</button>
-        <button class="reaction-btn" onclick="addReaction('${comment._id}', 'love')">❤️ ${comment.reactions?.love || 0}</button>
-        <button class="reaction-btn" onclick="addReaction('${comment._id}', 'haha')">😂 ${comment.reactions?.haha || 0}</button>
-      </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 }
 
 async function submitComment() {
-  if (!currentEvent) return;
   const text = document.getElementById('newComment').value.trim();
-  if (!text) return;
-
+  if (!text || !currentEvent) return;
   try {
     const res = await fetch(`/api/events/${currentEvent._id}/comments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text })
     });
-    const comment = await res.json();
-    comments.push(comment);
+    const c = await res.json();
+    comments.push(c);
     document.getElementById('newComment').value = '';
     renderComments();
     showToast('Comentario publicado', 'success');
-  } catch (err) {
-    showToast('Error publicando comentario', 'error');
-  }
+  } catch (e) { showToast('Error', 'error'); }
 }
 
 async function addReaction(commentId, type) {
@@ -419,7 +443,7 @@ async function addReaction(commentId, type) {
       body: JSON.stringify({ type })
     });
     await loadComments();
-  } catch (err) {}
+  } catch (e) {}
 }
 
 // ===== TASK COMPLETION =====
@@ -434,29 +458,29 @@ async function toggleTaskCompletion(completed) {
     if (res.ok) {
       currentEvent = await res.json();
       updateCompletionStatus();
-      showToast(completed ? 'Tarea completada ✅' : 'Tarea marcada incompleta', 'success');
+      showToast(completed ? 'Tarea completada' : 'Marcada incompleta', 'success');
     }
-  } catch (err) {
-    showToast('Error al actualizar tarea', 'error');
-  }
+  } catch (e) { showToast('Error', 'error'); }
 }
 
 function updateCompletionStatus() {
+  const uid = currentUser._id?.toString();
+  const comp = currentEvent.completions?.find(c => c.userId?.toString() === uid);
   const statusDiv = document.getElementById('completionStatus');
-  const userCompletion = currentEvent.completions?.find(c => c.userId?.toString() === currentUser._id?.toString());
+  const btnDone = document.getElementById('markCompletedBtn');
+  const btnNot = document.getElementById('markIncompleteBtn');
 
-  if (userCompletion?.completed) {
-    statusDiv.innerHTML = `<span style="color:#10b981;">✅ Completada el ${new Date(userCompletion.completedAt).toLocaleDateString('es-ES')}</span>`;
-    document.getElementById('markCompletedBtn').classList.add('active');
-    document.getElementById('markIncompleteBtn').classList.remove('active');
-  } else if (userCompletion) {
-    statusDiv.innerHTML = '<span style="color:#6b7280;">❌ Marcada como no completada</span>';
-    document.getElementById('markIncompleteBtn').classList.add('active');
-    document.getElementById('markCompletedBtn').classList.remove('active');
+  if (comp?.completed) {
+    const p = parseDateUTC(comp.completedAt);
+    const months = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+    statusDiv.innerHTML = `<span class="status-ok">Completada el ${p.day} ${months[p.month]} ${p.year}</span>`;
+    btnDone.classList.add('active'); btnNot.classList.remove('active');
+  } else if (comp) {
+    statusDiv.innerHTML = `<span class="status-no">No completada</span>`;
+    btnNot.classList.add('active'); btnDone.classList.remove('active');
   } else {
-    statusDiv.innerHTML = '<span style="color:#6b7280;">No has marcado esta tarea aún</span>';
-    document.getElementById('markCompletedBtn').classList.remove('active');
-    document.getElementById('markIncompleteBtn').classList.remove('active');
+    statusDiv.innerHTML = `<span class="status-pending">Sin marcar</span>`;
+    btnDone.classList.remove('active'); btnNot.classList.remove('active');
   }
 }
 
@@ -469,20 +493,26 @@ async function addEventReaction(type) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ type })
     });
-    showToast('Reacción agregada', 'success');
-  } catch (err) {}
+    showToast('Reaccion agregada', 'success');
+  } catch (e) {}
 }
 
 // ===== UTILS =====
-function getEventTypeLabel(type) {
-  const labels = { tarea:'📝 Tarea', examen:'📋 Examen', proyecto:'🗂 Proyecto', exposicion:'🎤 Exposición', otro:'📌 Otro' };
-  return labels[type] || type;
+function getTypeLabel(type) {
+  const m = { tarea:'Tarea', examen:'Examen', proyecto:'Proyecto', exposicion:'Exposicion', otro:'Otro' };
+  return m[type] || type;
 }
 
-function showToast(message, type = 'info') {
-  const toast = document.getElementById('toast');
-  toast.textContent = message;
-  toast.className = `toast ${type}`;
-  toast.style.display = 'block';
-  setTimeout(() => { toast.style.display = 'none'; }, 3000);
+function resetColorPicker(pickerId, defaultColor) {
+  document.querySelectorAll(`#${pickerId} .color-dot`).forEach(d => {
+    d.classList.toggle('selected', d.dataset.color === defaultColor);
+  });
+}
+
+function showToast(msg, type = 'info') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast ${type}`;
+  t.style.display = 'block';
+  setTimeout(() => { t.style.display = 'none'; }, 3000);
 }
