@@ -9,7 +9,6 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- ===== DASHBOARD ===== -->
   <div id="dashboard" class="dashboard">
     <aside class="sidebar">
       <div class="sidebar-header">
@@ -20,12 +19,10 @@
           </svg>
         </button>
       </div>
-
       <div class="sidebar-content">
         <h3 class="sidebar-title">Cursos</h3>
         <div id="coursesList" class="courses-list"></div>
       </div>
-
       <div class="sidebar-footer">
         <button class="logout-btn" onclick="logout()">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -38,7 +35,7 @@
     </aside>
 
     <main class="main-panel">
-      <!-- Home / Perfil y Cursos -->
+      <!-- Home -->
       <section id="homeView" class="view-section active">
         <div class="header-profile">
           <img id="profileAvatar" src="" alt="" class="profile-avatar" />
@@ -47,19 +44,16 @@
             <p id="profileRole"></p>
           </div>
         </div>
-
         <div class="courses-overview">
           <h3>Tus Cursos</h3>
           <div id="homeCoursesGrid" class="courses-grid"></div>
         </div>
       </section>
 
-      <!-- Vista de Curso con Calendario -->
+      <!-- Vista de Curso -->
       <section id="courseView" class="view-section">
         <div class="course-header">
-          <button class="btn-back" onclick="goHome()">
-            ← Volver
-          </button>
+          <button class="btn-back" onclick="goHome()">← Volver</button>
           <h2 id="courseTitle"></h2>
         </div>
 
@@ -72,28 +66,18 @@
           <div class="calendar-grid" id="courseCalendarGrid"></div>
         </div>
 
-        <div class="course-admin-section" id="adminSection" style="display: none;">
-          <h3>Crear Evento</h3>
-          <form class="event-form" onsubmit="createEvent(event)">
-            <input type="text" id="eventTitle" placeholder="Título del evento" required />
-            <textarea id="eventDesc" placeholder="Descripción" rows="3"></textarea>
-            <input type="date" id="eventDate" required />
-            <select id="eventType">
-              <option value="tarea">Tarea</option>
-              <option value="examen">Examen</option>
-              <option value="proyecto">Proyecto</option>
-              <option value="exposicion">Exposición</option>
-              <option value="otro">Otro</option>
-            </select>
-            <button type="submit">Crear Evento</button>
-          </form>
-        </div>
+        <!-- Botón flotante para crear evento (solo admin) -->
+        <button id="fabCreateEvent" class="fab-create-event" onclick="openCreateEventModal()" style="display:none;" title="Crear evento">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+        </button>
       </section>
 
-      <!-- Vista de Evento con Comentarios -->
+      <!-- Vista de Evento -->
       <section id="eventView" class="view-section">
         <button class="btn-back" onclick="backToCalendar()">← Volver al calendario</button>
-
         <div class="event-detail">
           <h2 id="eventDetailTitle"></h2>
           <div class="event-meta">
@@ -103,39 +87,23 @@
           </div>
           <p id="eventDetailDesc"></p>
 
-          <!-- Task Completion Controls -->
           <div class="task-completion" id="taskCompletionSection" style="display: none;">
             <h4>Estado de la tarea</h4>
             <div class="completion-controls">
-              <button id="markCompletedBtn" class="completion-btn completed" onclick="toggleTaskCompletion(true)">
-                Completada
-              </button>
-              <button id="markIncompleteBtn" class="completion-btn incomplete" onclick="toggleTaskCompletion(false)">
-                No completada
-              </button>
+              <button id="markCompletedBtn" class="completion-btn completed" onclick="toggleTaskCompletion(true)">✅ Completada</button>
+              <button id="markIncompleteBtn" class="completion-btn incomplete" onclick="toggleTaskCompletion(false)">❌ No completada</button>
             </div>
             <div id="completionStatus" class="completion-status"></div>
           </div>
 
-          <!-- Event Reactions -->
           <div class="event-reactions">
             <h4>¿Qué te parece esta actividad?</h4>
             <div class="reaction-buttons">
-              <button class="reaction-btn" onclick="addEventReaction('like')" title="Me gusta">
-                Like
-              </button>
-              <button class="reaction-btn" onclick="addEventReaction('love')" title="Me encanta">
-                Love
-              </button>
-              <button class="reaction-btn" onclick="addEventReaction('haha')" title="Gracioso">
-                Haha
-              </button>
-              <button class="reaction-btn" onclick="addEventReaction('wow')" title="Impresionante">
-                Wow
-              </button>
-              <button class="reaction-btn" onclick="addEventReaction('sad')" title="Triste">
-                Sad
-              </button>
+              <button class="reaction-btn" onclick="addEventReaction('like')">👍 Me gusta</button>
+              <button class="reaction-btn" onclick="addEventReaction('love')">❤️ Me encanta</button>
+              <button class="reaction-btn" onclick="addEventReaction('haha')">😂 Gracioso</button>
+              <button class="reaction-btn" onclick="addEventReaction('wow')">😮 Wow</button>
+              <button class="reaction-btn" onclick="addEventReaction('sad')">😢 Triste</button>
             </div>
           </div>
         </div>
@@ -143,7 +111,6 @@
         <div class="comments-section">
           <h3>Comentarios</h3>
           <div id="commentsList" class="comments-list"></div>
-
           <div class="comment-form">
             <textarea id="newComment" placeholder="Escribe un comentario..." rows="3"></textarea>
             <button onclick="submitComment()">Enviar</button>
@@ -153,23 +120,49 @@
     </main>
   </div>
 
+  <!-- ===== MODAL: CREAR EVENTO ===== -->
+  <div id="createEventModal" class="modal-overlay" style="display:none;" onclick="handleModalBackdropClick(event)">
+    <div class="modal-content" onclick="event.stopPropagation()">
+      <button class="close-modal" onclick="closeCreateEventModal()">✕</button>
+      <h3 class="modal-title">Crear Evento</h3>
+      <form class="event-form" onsubmit="createEvent(event)">
+        <input type="text" id="eventTitle" placeholder="Título del evento" required />
+        <textarea id="eventDesc" placeholder="Descripción (opcional)" rows="3"></textarea>
+        <label class="form-label">Fecha</label>
+        <input type="date" id="eventDate" required />
+        <label class="form-label">Tipo de actividad</label>
+        <select id="eventType">
+          <option value="tarea">📝 Tarea</option>
+          <option value="examen">📋 Examen</option>
+          <option value="proyecto">🗂 Proyecto</option>
+          <option value="exposicion">🎤 Exposición</option>
+          <option value="otro">📌 Otro</option>
+        </select>
+        <label class="form-label">Color del evento</label>
+        <div class="color-picker-row">
+          <button type="button" class="color-dot selected" style="background:#7c6aff" data-color="#7c6aff" onclick="selectColor(this)"></button>
+          <button type="button" class="color-dot" style="background:#ef4444" data-color="#ef4444" onclick="selectColor(this)"></button>
+          <button type="button" class="color-dot" style="background:#f59e0b" data-color="#f59e0b" onclick="selectColor(this)"></button>
+          <button type="button" class="color-dot" style="background:#10b981" data-color="#10b981" onclick="selectColor(this)"></button>
+          <button type="button" class="color-dot" style="background:#3b82f6" data-color="#3b82f6" onclick="selectColor(this)"></button>
+          <button type="button" class="color-dot" style="background:#ec4899" data-color="#ec4899" onclick="selectColor(this)"></button>
+        </div>
+        <input type="hidden" id="eventColor" value="#7c6aff" />
+        <button type="submit" class="btn-submit-event">Crear Evento</button>
+      </form>
+    </div>
+  </div>
+
   <div id="toast" class="toast"></div>
   <script src="app.js"></script>
   <script>
-    // Check authentication on dashboard load
     fetch('/auth/me')
-      .then(response => response.json())
+      .then(r => r.json())
       .then(user => {
-        if (user.error) {
-          window.location.href = '/';
-        } else {
-          // Initialize dashboard with user data
-          initializeDashboard(user);
-        }
+        if (user.error) window.location.href = '/';
+        else initializeDashboard(user);
       })
-      .catch(() => {
-        window.location.href = '/';
-      });
+      .catch(() => window.location.href = '/');
   </script>
 </body>
 </html>
